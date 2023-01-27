@@ -3,10 +3,21 @@ output "name" {
   description = "Name of the fargate deployment"
 }
 
-output "cluster_arn" {
-  value       = aws_ecs_cluster.default.arn
-  description = "The ARN of the ECS cluster"
-}
+# output "cluster_arn" {
+#   value       = try(aws_ecs_cluster.default[0].arn, null)
+#   description = "The ARN of the ECS cluster"
+# }
+
+# output "cluster_id" {
+#   description = "The Id of the ECS cluster"
+#   value       = try(aws_ecs_cluster.default[0].id, null)
+# }
+
+# output "cluster_name" {
+#   description = "The name of the ECS cluster"
+#   value       = try(aws_ecs_cluster.default[0].name, null)
+# }
+
 
 output "fqdn" {
   value       = local.application_fqdn

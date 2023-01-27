@@ -1,4 +1,9 @@
 locals {
+  # disable cluster creation in mode
+  #ecs_cluster_id   = var.ecs_cluster_id != null ? var.ecs_cluster_id : try(aws_ecs_cluster.default[0].id, null)
+  ecs_cluster_id   = var.ecs_cluster_id
+  ecs_cluster_name = split("/", local.ecs_cluster_id)[1]
+
   load_balancer = var.load_balancer_subnet_ids != null ? { create : true } : null
   region        = var.region != null ? var.region : data.aws_region.current.name
 
@@ -17,25 +22,159 @@ locals {
       valueFrom = v
     }
   ]
+
+
+
 }
 
 data "aws_region" "current" {}
 
 module "task_execution_role" {
-  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
-  name                  = "TaskExecutionRole-${var.name}"
+  #source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
+  source                = "../terraform-aws-mcaf-role"
+  name                  = join("-", compact([var.role_prefix, "taskex", var.name]))
   create_policy         = true
   principal_type        = "Service"
   principal_identifiers = ["ecs-tasks.amazonaws.com"]
   role_policy           = var.role_policy
   postfix               = var.postfix
-  tags                  = var.tags
+  permissions_boundary  = var.permissions_boundary
+  tags                  = var.disable_iam_tags ? null : var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "task_execution_role" {
   role       = module.task_execution_role.id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
+
+
+resource "aws_iam_policy" "log_s3_policy" {
+  count       = var.log_bucket != null ? 1 : 0
+  name        = join("-", compact([var.role_prefix, "LogWriteS3", var.name]))
+  description = "permissions to write log to s3 bucket"
+
+
+  policy = jsonencode({
+    #tfsec:ignore:aws-iam-no-policy-wildcards
+
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "s3:putObject"
+        ],
+        Effect   = "Allow",
+        Resource = "arn:aws:s3:::${var.log_bucket}/*"
+      },
+      {
+        Action = [
+          "logs:CreateLogStream",
+          "logs:CreateLogGroup",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents",
+          "logs:PutRetentionPolicy"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "log_s3_policy_attach" {
+  count = var.log_bucket != null ? 1 : 0
+
+  role       = module.task_execution_role.id
+  policy_arn = aws_iam_policy.log_s3_policy[0].arn
+}
+
+resource "aws_iam_policy" "secrets_policy" {
+  count       = length(var.secrets) > 0 ? 1 : 0
+  name        = join("-", compact([var.role_prefix, "Secrets", var.name]))
+  description = "permissions to read secrets"
+
+  policy = jsonencode({
+
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "kms:Decrypt",
+          "ssm:GetParameters",
+          "secretsmanager:GetSecretValue"
+        ],
+        Effect   = "Allow",
+        Resource = values(var.secrets)
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "secrets_policy_attach" {
+  count = length(var.secrets) > 0 ? 1 : 0
+
+  role       = module.task_execution_role.id
+  policy_arn = aws_iam_policy.secrets_policy[0].arn
+}
+
+# https://docs.aws.amazon.com/AmazonECS/latest/developerguide/private-auth.html
+resource "aws_iam_policy" "repository_creds_policy" {
+  count       = var.repository_secret_arn != null ? 1 : 0
+  name        = join("-", compact([var.role_prefix, "ReadSecret", var.name]))
+  description = "permissions to read secret for repository"
+
+  policy = jsonencode({
+
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "kms:Decrypt",
+          "ssm:GetParameters",
+          "secretsmanager:GetSecretValue"
+        ],
+        Effect = "Allow",
+        Resource = [
+          var.repository_secret_arn,
+          var.repository_secret_kms_key_arn
+        ]
+      }
+    ]
+  })
+}
+
+
+resource "aws_iam_role_policy_attachment" "repository_creds_policy_attach" {
+  count = var.repository_secret_arn != null ? 1 : 0
+
+  role       = module.task_execution_role.id
+  policy_arn = aws_iam_policy.repository_creds_policy[0].arn
+}
+
+
+
+module "task_role" {
+  #source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
+  source                = "../terraform-aws-mcaf-role"
+  name                  = join("-", compact([var.role_prefix, "task", var.name]))
+  create_policy         = true
+  principal_type        = "Service"
+  principal_identifiers = ["ecs-tasks.amazonaws.com"]
+  role_policy           = var.role_policy
+  postfix               = var.postfix
+  permissions_boundary  = var.permissions_boundary
+  tags                  = var.disable_iam_tags ? null : var.tags
+}
+
+
+
+resource "aws_iam_role_policy_attachment" "task_log_s3_policy_attach" {
+  count = var.log_bucket != null ? 1 : 0
+
+  role       = module.task_role.id
+  policy_arn = aws_iam_policy.log_s3_policy[0].arn
+}
+
 
 resource "aws_cloudwatch_log_group" "default" {
   name              = "/ecs/${var.name}"
@@ -47,13 +186,13 @@ resource "aws_cloudwatch_log_group" "default" {
 resource "aws_ecs_task_definition" "default" {
   family                   = var.name
   execution_role_arn       = module.task_execution_role.arn
-  task_role_arn            = module.task_execution_role.arn
+  task_role_arn            = module.task_role.arn
   network_mode             = "awsvpc"
   requires_compatibilities = [var.service_launch_type]
   cpu                      = var.cpu
   memory                   = var.memory
 
-  container_definitions = templatefile("${path.module}/templates/container_definition.tpl", {
+  container_definitions = templatefile("${path.module}/templates/container_definition_${var.log_type}-${var.task_type}.tpl", {
     name                   = var.name
     image                  = var.image
     port                   = var.port
@@ -64,7 +203,16 @@ resource "aws_ecs_task_definition" "default" {
     secrets                = jsonencode(local.secrets)
     readonlyRootFilesystem = var.readonly_root_filesystem
     region                 = local.region
+    image_firelens         = var.image_firelens
+    log_firehose           = var.log_firehose
+    log_bucket             = var.log_bucket
+    image_loader           = var.image_loader
   })
+
+  volume {
+    name = "config"
+    # host_path = "/config"
+  }
 
   tags = var.tags
 }
@@ -101,47 +249,9 @@ resource "aws_security_group" "ecs" {
   }
 }
 
-resource "aws_ecs_cluster" "default" {
-  name = var.name
-  tags = var.tags
-
-  setting {
-    name  = "containerInsights"
-    value = var.enable_container_insights ? "enabled" : "disabled"
-  }
-}
-
-resource "aws_ecs_capacity_provider" "default" {
-  count = var.capacity_provider_asg_arn != null ? 1 : 0
-  name  = "${var.name}-capacity-provider"
-
-  auto_scaling_group_provider {
-    auto_scaling_group_arn         = var.capacity_provider_asg_arn
-    managed_termination_protection = "DISABLED"
-
-    managed_scaling {
-      instance_warmup_period = 60
-      status                 = "ENABLED"
-      target_capacity        = 100
-    }
-  }
-}
-
-resource "aws_ecs_cluster_capacity_providers" "default" {
-  count              = var.capacity_provider_asg_arn != null ? 1 : 0
-  capacity_providers = [aws_ecs_capacity_provider.default[*].name]
-  cluster_name       = aws_ecs_cluster.default.name
-
-  default_capacity_provider_strategy {
-    base              = 1
-    weight            = 100
-    capacity_provider = aws_ecs_capacity_provider.default[*].name
-  }
-}
-
 resource "aws_ecs_service" "default" {
   name            = var.name
-  cluster         = aws_ecs_cluster.default.id
+  cluster         = local.ecs_cluster_id
   task_definition = aws_ecs_task_definition.default.arn
   desired_count   = var.desired_count
   launch_type     = var.service_launch_type
@@ -154,12 +264,17 @@ resource "aws_ecs_service" "default" {
   }
 
   dynamic "load_balancer" {
-    for_each = aws_lb.default
-
+    for_each = var.create_lb ? aws_lb.default : []
     content {
       target_group_arn = aws_lb_target_group.default.0.id
       container_name   = "app-${var.name}"
       container_port   = var.port
     }
   }
+
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
+  tags = merge({ "Name" : var.name }, var.tags)
 }

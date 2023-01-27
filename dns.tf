@@ -3,8 +3,8 @@ locals {
     "${var.subdomain.name}.${data.aws_route53_zone.current[0].name}", "/[.]$/", "",
   ) : null
 
-  certificate_arn   = var.certificate_arn != null ? var.certificate_arn : var.protocol == "HTTP" ? aws_acm_certificate.default[0].arn : null
-  certificate_count = var.certificate_arn == null && var.subdomain != null && var.protocol == "HTTP" ? local.load_balancer_count : 0
+  certificate_arn   = var.create_lb && var.certificate_arn != null ? var.certificate_arn : var.protocol == "HTTP" ? aws_acm_certificate.default[0].arn : null
+  certificate_count = var.create_lb && var.certificate_arn == null && var.subdomain != null && var.protocol == "HTTP" ? local.load_balancer_count : 0
 }
 
 data "aws_route53_zone" "current" {
@@ -12,13 +12,26 @@ data "aws_route53_zone" "current" {
   zone_id = var.subdomain.zone_id
 }
 
+# resource "aws_route53_record" "default" {
+#   count   = var.subdomain != null ? local.load_balancer_count : 0
+#   zone_id = data.aws_route53_zone.current[0].zone_id
+#   name    = local.application_fqdn
+#   type    = "CNAME"
+#   ttl     = "5"
+#   records = [aws_lb.default[0].dns_name]
+# }
+
 resource "aws_route53_record" "default" {
   count   = var.subdomain != null ? local.load_balancer_count : 0
   zone_id = data.aws_route53_zone.current[0].zone_id
   name    = local.application_fqdn
-  type    = "CNAME"
-  ttl     = "5"
-  records = [aws_lb.default[0].dns_name]
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.default[0].dns_name
+    zone_id                = aws_lb.default[0].zone_id
+    evaluate_target_health = false
+  }
 }
 
 resource "aws_acm_certificate" "default" {

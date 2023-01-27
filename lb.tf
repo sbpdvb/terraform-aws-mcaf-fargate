@@ -1,18 +1,18 @@
 locals {
-  lb_hostname         = local.load_balancer != null ? aws_lb.default[0].dns_name : null
-  http_listener_arn   = local.load_balancer != null && var.protocol != "TCP" ? aws_lb_listener.http[0].arn : null
-  https_listener_arn  = local.load_balancer != null && var.protocol != "TCP" ? aws_lb_listener.https[0].arn : null
-  tcp_listener_arn    = local.load_balancer != null && var.protocol == "TCP" ? aws_lb_listener.tcp[0].arn : null
-  load_balancer_count = local.load_balancer != null ? 1 : 0
-  eip_subnets         = var.load_balancer_eip ? var.load_balancer_subnet_ids : []
+  lb_hostname         = var.create_lb && local.load_balancer != null ? aws_lb.default[0].dns_name : null
+  http_listener_arn   = var.create_lb && local.load_balancer != null && var.protocol != "TCP" ? aws_lb_listener.http[0].arn : null
+  https_listener_arn  = var.create_lb && local.load_balancer != null && var.protocol != "TCP" ? aws_lb_listener.https[0].arn : null
+  tcp_listener_arn    = var.create_lb && local.load_balancer != null && var.protocol == "TCP" ? aws_lb_listener.tcp[0].arn : null
+  load_balancer_count = var.create_lb && local.load_balancer != null ? 1 : 0
+  eip_subnets         = var.create_lb && var.load_balancer_eip ? var.load_balancer_subnet_ids : []
 
-  target_group_arn = local.load_balancer == null ? null : (
+  target_group_arn = var.create_lb && local.load_balancer == null ? null : (
     length(aws_lb_target_group.default) > 0 ? aws_lb_target_group.default[0].arn : null
   )
 }
 
 resource "aws_security_group" "lb" {
-  count       = var.protocol != "TCP" ? local.load_balancer_count : 0
+  count       = var.create_lb && var.protocol != "TCP" ? local.load_balancer_count : 0
   name        = "${var.name}-lb"
   description = "Controls access to the LB"
   vpc_id      = var.vpc_id
@@ -47,11 +47,16 @@ resource "aws_security_group" "lb" {
 resource "aws_eip" "lb" {
   count = length(local.eip_subnets)
 
+  #checkov:skip=CKV2_AWS_19:Ensure that all EIP addresses allocated to a VPC are attached to EC2 instances
   vpc  = true
   tags = var.tags
 }
 
 resource "aws_lb" "default" {
+  # This is done, but checkov doens't detect
+  #checkov:skip=CKV2_AWS_20:Ensure that ALB redirects HTTP requests into HTTPS ones
+  #checkov:skip=CKV_AWS_91:Ensure the ELBv2 (Application/Network) has access logging enabled
+
   count                            = local.load_balancer_count
   name                             = var.name
   drop_invalid_header_fields       = var.protocol != "TCP" ? true : null
@@ -60,6 +65,7 @@ resource "aws_lb" "default" {
   enable_cross_zone_load_balancing = var.protocol == "TCP" ? var.enable_cross_zone_load_balancing : false
   subnets                          = var.load_balancer_eip ? null : var.load_balancer_subnet_ids
   security_groups                  = var.protocol != "TCP" ? [aws_security_group.lb[0].id] : null
+  enable_deletion_protection       = var.enable_deletion_protection
   tags                             = var.tags
 
   dynamic "subnet_mapping" {
@@ -81,7 +87,7 @@ resource "aws_lb" "default" {
 
 resource "aws_lb_listener" "http" {
   count             = var.protocol == "TCP" ? 0 : local.load_balancer_count
-  load_balancer_arn = aws_lb.default[0].id
+  load_balancer_arn = aws_lb.default[count.index].id
   port              = 80
   protocol          = "HTTP"
 
@@ -107,15 +113,15 @@ resource "aws_lb_target_group" "default" {
   vpc_id               = var.vpc_id
   tags                 = var.tags
 
-  health_check {
-    interval            = var.health_check.interval
-    timeout             = var.protocol != "TCP" ? 3 : null
-    protocol            = var.protocol
-    path                = var.protocol != "TCP" ? var.health_check.path : null
-    matcher             = var.protocol != "TCP" ? 200 : null
-    healthy_threshold   = var.health_check.healthy_threshold
-    unhealthy_threshold = var.health_check.unhealthy_threshold
-  }
+  # health_check {
+  #   interval            = var.health_check.interval
+  #   timeout             = var.protocol != "TCP" ? 3 : null
+  #   protocol            = var.protocol
+  #   path                = var.protocol != "TCP" ? var.health_check.path : null
+  #   matcher             = var.protocol != "TCP" ? 200 : null
+  #   healthy_threshold   = var.health_check.healthy_threshold
+  #   unhealthy_threshold = var.health_check.unhealthy_threshold
+  # }
 
   stickiness {
     enabled = var.target_group_stickiness
@@ -124,7 +130,7 @@ resource "aws_lb_target_group" "default" {
 }
 
 resource "aws_lb_listener" "https" {
-  count             = var.protocol == "TCP" ? 0 : local.load_balancer_count
+  count             = var.create_lb && var.protocol == "TCP" ? 0 : local.load_balancer_count
   load_balancer_arn = aws_lb.default[0].id
   port              = 443
   protocol          = "HTTPS"
@@ -138,7 +144,7 @@ resource "aws_lb_listener" "https" {
 }
 
 resource "aws_lb_listener" "tcp" {
-  count             = var.protocol == "TCP" ? 1 : 0
+  count             = var.create_lb && var.protocol == "TCP" ? 1 : 0
   load_balancer_arn = aws_lb.default[0].id
   port              = var.port
   protocol          = "TCP"

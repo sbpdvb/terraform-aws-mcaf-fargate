@@ -54,6 +54,7 @@
 | <a name="input_image"></a> [image](#input\_image) | Docker image to run in the ECS cluster | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the Fargate cluster | `string` | n/a | yes |
 | <a name="input_role_policy"></a> [role\_policy](#input\_role\_policy) | The Policy document for the role | `string` | n/a | yes |
+| <a name="input_tags"></a> [tags](#input\_tags) | A mapping of tags to assign to the resources | `map(string)` | n/a | yes |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | AWS vpc id | `string` | n/a | yes |
 | <a name="input_capacity_provider_asg_arn"></a> [capacity\_provider\_asg\_arn](#input\_capacity\_provider\_asg\_arn) | ARN of Autoscaling Group for capacity provider | `string` | `null` | no |
 | <a name="input_certificate_arn"></a> [certificate\_arn](#input\_certificate\_arn) | Certificate ARN for the LB Listener | `string` | `null` | no |
@@ -80,7 +81,6 @@
 | <a name="input_service_launch_type"></a> [service\_launch\_type](#input\_service\_launch\_type) | The service launch type: either FARGATE or EC2 | `string` | `"FARGATE"` | no |
 | <a name="input_ssl_policy"></a> [ssl\_policy](#input\_ssl\_policy) | SSL Policy for the LB Listener | `string` | `"ELBSecurityPolicy-TLS-1-2-Ext-2018-06"` | no |
 | <a name="input_subdomain"></a> [subdomain](#input\_subdomain) | The DNS subdomain and zone ID for the LB | <pre>object({<br>    name    = string,<br>    zone_id = string<br>  })</pre> | `null` | no |
-| <a name="input_tags"></a> [tags](#input\_tags) | A mapping of tags to assign to the resources | `map(string)` | `{}` | no |
 | <a name="input_target_group_stickiness"></a> [target\_group\_stickiness](#input\_target\_group\_stickiness) | Whether to bind a client’s session to a specific instance within the target group | `bool` | `false` | no |
 
 ## Outputs

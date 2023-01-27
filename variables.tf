@@ -22,15 +22,30 @@ variable "cpu" {
   description = "Fargate instance CPU units to provision (1 vCPU = 1024 CPU units)"
 }
 
+variable "create_lb" {
+  type        = bool
+  default     = false
+  description = "Create Ingress load-balancer"
+}
+
+
 variable "desired_count" {
   type        = number
   default     = 1
   description = "Desired number of docker containers to run"
 }
 
+
+variable "ecs_cluster_id" {
+  type        = string
+  description = "Optional Cluster ID"
+  default     = null
+}
+
 variable "ecs_subnet_ids" {
   type        = list(string)
   description = "List of subnet IDs assigned to ECS cluster"
+  default     = null
 }
 
 variable "enable_container_insights" {
@@ -41,7 +56,7 @@ variable "enable_container_insights" {
 
 variable "enable_cross_zone_load_balancing" {
   type        = bool
-  default     = false
+  default     = true
   description = "Enable cross-zone load balancing of the (network) load balancer"
 }
 
@@ -72,10 +87,17 @@ variable "image" {
   description = "Docker image to run in the ECS cluster"
 }
 
+variable "image_firelens" {
+  type        = string
+  description = "Docker image of the firelens sidecar"
+  default     = null
+}
+
+
 variable "kms_key_id" {
   type        = string
   default     = null
-  description = "The custom KMS key ARN used encryption of the Cloudwatch log group"
+  description = "The custom KMS key ID used encryption of the Cloudwatch log group"
 }
 
 variable "load_balancer_deregistration_delay" {
@@ -102,6 +124,29 @@ variable "load_balancer_subnet_ids" {
   description = "List of subnet IDs assigned to the LB"
 }
 
+variable "log_bucket" {
+  type        = string
+  default     = null
+  description = "AWS Log bucket target"
+}
+
+variable "log_firehose" {
+  type        = string
+  default     = null
+  description = "AWS Log firehose target"
+}
+
+variable "log_type" {
+  type        = string
+  default     = "awslogs"
+  description = "AWS Log type"
+
+  validation {
+    condition     = contains(["awslogs", "s3", "firehose", "cloudwatch"], var.log_type)
+    error_message = "Invalid input, options: \"awslogs\", \"s3\",\"firehose\",\"cloudwatch\"."
+  }
+}
+
 variable "memory" {
   type        = number
   default     = 2048
@@ -111,6 +156,12 @@ variable "memory" {
 variable "name" {
   type        = string
   description = "Name of the Fargate cluster"
+}
+
+variable "permissions_boundary" {
+  type        = string
+  description = "Permission boundary for the Role"
+  default     = null
 }
 
 variable "port" {
@@ -159,6 +210,12 @@ variable "role_policy" {
   description = "The Policy document for the role"
 }
 
+variable "role_prefix" {
+  type        = string
+  description = "Default prefix for the role"
+  default     = null
+}
+
 variable "secrets" {
   type        = map(string)
   default     = {}
@@ -194,7 +251,6 @@ variable "subdomain" {
 variable "tags" {
   type        = map(string)
   description = "A mapping of tags to assign to the resources"
-  default     = {}
 }
 
 variable "target_group_stickiness" {
@@ -206,4 +262,130 @@ variable "target_group_stickiness" {
 variable "vpc_id" {
   type        = string
   description = "AWS vpc id"
+}
+
+variable "min_capacity" {
+  type        = number
+  default     = 1
+  description = "Minimal Capacity for autoscalig"
+}
+
+variable "max_capacity" {
+  type        = number
+  default     = 5
+  description = "Maximum Capacity for autoscalig"
+}
+
+variable "cpu_low_threshold" {
+  default = 20
+}
+variable "cpu_high_threshold" {
+  default = 80
+}
+
+variable "metric_low_threshold" {
+  default = 20
+}
+variable "metric_high_threshold" {
+  default = 80
+}
+
+variable "scale_metric_name" {
+  default = 80
+}
+
+variable "scale_metric_namespace" {
+  default = 80
+}
+
+variable "scale_up_cron" {
+  type        = string
+  description = "Cron schedule to scale up"
+  default     = "cron(0 11 ? * MON-FRI *)"
+}
+
+variable "scale_down_cron" {
+  type        = string
+  description = "Cron schedule to scale down"
+  default     = "cron(0 23 * * ? *)"
+}
+
+variable "scale_timezone" {
+  type        = string
+  description = "Timezone for scale up/down cron"
+  default     = "europe/amsterdam"
+}
+
+
+variable "scale_down_min_capacity" {
+  type        = number
+  description = "Minimal capacity during down time"
+  default     = 0
+}
+
+variable "scale_down_max_capacity" {
+  type        = number
+  description = "Maxium capacity during down time"
+  default     = 0
+}
+
+variable "enable_deletion_protection" {
+  default     = true
+  type        = bool
+  description = "Enable the delete protection for the lb"
+}
+
+variable "enable_autoscale_time" {
+  default     = false
+  type        = bool
+  description = "Enable the autoscaling based on Cron settings"
+}
+
+variable "enable_autoscale_cpu" {
+  default     = false
+  type        = bool
+  description = "Enable the autoscaling based on CPU"
+}
+
+variable "enable_autoscale_metric" {
+  default     = false
+  type        = bool
+  description = "Enable the autoscaling based on Metric"
+}
+
+
+variable "disable_iam_tags" {
+  type        = bool
+  description = "Disable the IAM Role Tags, as blocked by a policy"
+  default     = false
+}
+
+
+variable "repository_secret_arn" {
+  description = "Repository Secret ARN"
+  default     = null
+  type        = string
+}
+
+variable "repository_secret_kms_key_arn" {
+  description = "Repository Secret KMS Key ARN"
+  default     = null
+  type        = string
+}
+
+variable "image_loader" {
+  type        = string
+  default     = null
+  description = "Docker image to run in the ECS cluster"
+}
+
+variable "keystore_secret" {
+  type    = string
+  default = null
+}
+
+variable "task_type" {
+  type        = string
+  default     = "single"
+  description = "Task definition type"
 }

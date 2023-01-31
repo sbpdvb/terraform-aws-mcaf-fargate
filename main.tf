@@ -30,8 +30,7 @@ locals {
 data "aws_region" "current" {}
 
 module "task_execution_role" {
-  #source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
-  source                = "../terraform-aws-mcaf-role"
+  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
   name                  = join("-", compact([var.role_prefix, "taskex", var.name]))
   create_policy         = true
   principal_type        = "Service"
@@ -154,8 +153,7 @@ resource "aws_iam_role_policy_attachment" "repository_creds_policy_attach" {
 
 
 module "task_role" {
-  #source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
-  source                = "../terraform-aws-mcaf-role"
+  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
   name                  = join("-", compact([var.role_prefix, "task", var.name]))
   create_policy         = true
   principal_type        = "Service"

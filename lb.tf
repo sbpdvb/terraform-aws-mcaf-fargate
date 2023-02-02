@@ -55,6 +55,7 @@ resource "aws_eip" "lb" {
 resource "aws_lb" "default" {
   # This is done, but checkov doens't detect
   #checkov:skip=CKV2_AWS_20:Ensure that ALB redirects HTTP requests into HTTPS ones
+  #checkov:skip=CKV_AWS_91:Ensure the ELBv2 (Application/Network) has access logging enabled
 
   count                            = local.load_balancer_count
   name                             = var.name

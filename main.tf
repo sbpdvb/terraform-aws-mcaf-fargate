@@ -205,6 +205,8 @@ resource "aws_ecs_task_definition" "default" {
     log_firehose           = var.log_firehose
     log_bucket             = var.log_bucket
     image_loader           = var.image_loader
+    dd_api_key             = var.dd_api_key
+    image_datadog          = var.image_datadog
   })
 
   volume {
@@ -270,9 +272,30 @@ resource "aws_ecs_service" "default" {
     }
   }
 
+  dynamic "alarms" {
+    for_each = length(var.deployment_alarms_topics) > 1 ? [1] : []
+
+    content {
+      alarm_names = var.deployment_alarms_topics
+      enable      = true
+      rollback    = true
+    }
+  }
+
+  dynamic "deployment_circuit_breaker" {
+    for_each = var.deployment_circuit_breaker ? [1] : []
+    content {
+      enable   = true
+      rollback = true
+    }
+  }
+
+
   lifecycle {
     ignore_changes = [desired_count]
   }
 
   tags = merge({ "Name" : var.name }, var.tags)
 }
+
+

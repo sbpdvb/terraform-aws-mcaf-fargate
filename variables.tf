@@ -389,3 +389,30 @@ variable "task_type" {
   default     = "single"
   description = "Task definition type"
 }
+
+variable "deployment_alarms_topics" {
+  type        = list(string)
+  default     = []
+  description = "Enable deployment alarms and forward to these topics"
+}
+
+
+variable "deployment_circuit_breaker" {
+  type        = bool
+  default     = true
+  description = "Enable deployment circuitbraker and roll-back"
+}
+
+variable "image_datadog" {
+  type        = string
+  default     = null
+  description = "Datadog image"
+}
+
+variable "dd_api_key" {
+  type        = string
+  default     = null
+  description = "Datadog api key"
+}
+
+

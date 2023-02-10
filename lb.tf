@@ -15,7 +15,7 @@ locals {
   load_balancer_count = var.create_lb && local.load_balancer != null ? 1 : 0
   eip_subnets         = var.create_lb && var.load_balancer_eip ? var.load_balancer_subnet_ids : []
 
-  lb_shortname        = length(var.name) > 32 ?  "${substr(var.name,0,28)}-${random_id.lb_name.hex}" :var.name
+  lb_shortname        = length(var.name) > 32 ?  "${substr(var.name,0,27)}-${substr(random_id.lb_name.hex,0,4)}" :var.name
 
   target_group_arn = var.create_lb && local.load_balancer == null ? null : (
     length(aws_lb_target_group.default) > 0 ? aws_lb_target_group.default[0].arn : null

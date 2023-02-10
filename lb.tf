@@ -1,3 +1,12 @@
+resource "random_id" "lb_name" {
+  keepers = {
+    # Generate a new id each time we switch to a new AMI id
+    name = var.name
+  }
+
+  byte_length = 4
+}
+
 locals {
   lb_hostname         = var.create_lb && local.load_balancer != null ? aws_lb.default[0].dns_name : null
   http_listener_arn   = var.create_lb && local.load_balancer != null && var.protocol != "TCP" ? aws_lb_listener.http[0].arn : null
@@ -5,6 +14,8 @@ locals {
   tcp_listener_arn    = var.create_lb && local.load_balancer != null && var.protocol == "TCP" ? aws_lb_listener.tcp[0].arn : null
   load_balancer_count = var.create_lb && local.load_balancer != null ? 1 : 0
   eip_subnets         = var.create_lb && var.load_balancer_eip ? var.load_balancer_subnet_ids : []
+
+  lb_shortname        = length(var.name) > 32 ?  "${substr(var.name,0,28)}-${random_id.lb_name.hex}" :var.name
 
   target_group_arn = var.create_lb && local.load_balancer == null ? null : (
     length(aws_lb_target_group.default) > 0 ? aws_lb_target_group.default[0].arn : null
@@ -58,7 +69,7 @@ resource "aws_lb" "default" {
   #checkov:skip=CKV_AWS_91:Ensure the ELBv2 (Application/Network) has access logging enabled
 
   count                            = local.load_balancer_count
-  name                             = var.name
+  name                             = local.lb_shortname
   drop_invalid_header_fields       = var.protocol != "TCP" ? true : null
   internal                         = var.load_balancer_internal #tfsec:ignore:AWS005
   load_balancer_type               = var.protocol == "TCP" ? "network" : "application"
@@ -105,7 +116,7 @@ resource "aws_lb_listener" "http" {
 
 resource "aws_lb_target_group" "default" {
   count                = local.load_balancer_count
-  name                 = var.name
+  name                 = local.lb_shortname
   deregistration_delay = var.load_balancer_deregistration_delay
   port                 = var.port
   protocol             = var.protocol

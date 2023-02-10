@@ -155,7 +155,13 @@ variable "memory" {
 
 variable "name" {
   type        = string
-  description = "Name of the Fargate cluster"
+  description = "Name of the Fargate jobs"
+}
+
+variable "shortname" {
+  type        = string
+  description = "Name of the service in short, used if longer then 32"
+  default     = null
 }
 
 variable "permissions_boundary" {

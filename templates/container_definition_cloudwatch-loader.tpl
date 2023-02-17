@@ -11,7 +11,8 @@
       "volumesFrom": [],
       "environment": ${environment},
       "secrets": ${secrets},
-     "logConfiguration": {
+      "readonlyRootFilesystem": ${readonlyRootFilesystem},
+      "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
 					  "awslogs-region": "${region}",

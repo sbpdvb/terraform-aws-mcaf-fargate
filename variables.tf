@@ -68,17 +68,16 @@ variable "environment" {
 
 variable "health_check" {
   type = object({
-    healthy_threshold   = number,
-    interval            = number,
-    path                = string,
-    unhealthy_threshold = number
+    healthy_threshold   = optional(number),
+    interval            = optional(number),
+    timeout             = optional(number),
+    path                = optional(string),
+    port                = optional(number),
+    unhealthy_threshold = optional(number),
+    protocol            = optional(string),
+    matcher             = optional(string)
   })
-  default = {
-    healthy_threshold   = 3,
-    interval            = 30,
-    path                = null,
-    unhealthy_threshold = 3
-  }
+  default     = {}
   description = "Health check settings for the container"
 }
 

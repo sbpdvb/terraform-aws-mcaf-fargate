@@ -15,7 +15,7 @@ locals {
   load_balancer_count = var.create_lb && local.load_balancer != null ? 1 : 0
   eip_subnets         = var.create_lb && var.load_balancer_eip ? var.load_balancer_subnet_ids : []
 
-  lb_shortname        = length(var.name) > 32 ?  "${substr(var.name,0,27)}-${substr(random_id.lb_name.hex,0,4)}" :var.name
+  lb_shortname = length(var.name) > 32 ? "${substr(var.name, 0, 27)}-${substr(random_id.lb_name.hex, 0, 4)}" : var.name
 
   target_group_arn = var.create_lb && local.load_balancer == null ? null : (
     length(aws_lb_target_group.default) > 0 ? aws_lb_target_group.default[0].arn : null
@@ -124,15 +124,20 @@ resource "aws_lb_target_group" "default" {
   vpc_id               = var.vpc_id
   tags                 = var.tags
 
-  # health_check {
-  #   interval            = var.health_check.interval
-  #   timeout             = var.protocol != "TCP" ? 3 : null
-  #   protocol            = var.protocol
-  #   path                = var.protocol != "TCP" ? var.health_check.path : null
-  #   matcher             = var.protocol != "TCP" ? 200 : null
-  #   healthy_threshold   = var.health_check.healthy_threshold
-  #   unhealthy_threshold = var.health_check.unhealthy_threshold
-  # }
+  dynamic "health_check" {
+    for_each = length(var.health_check) > 0 ? [1] : []
+
+    content {
+      interval            = var.health_check.interval
+      timeout             = var.health_check.timeout
+      protocol            = var.health_check.protocol
+      path                = var.health_check.path
+      port                = var.health_check.port
+      matcher             = var.health_check.matcher
+      healthy_threshold   = var.health_check.healthy_threshold
+      unhealthy_threshold = var.health_check.unhealthy_threshold
+    }
+  }
 
   stickiness {
     enabled = var.target_group_stickiness

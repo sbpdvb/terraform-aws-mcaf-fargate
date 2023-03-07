@@ -41,7 +41,7 @@
             "delivery_stream": "${log_firehose}"
         }
     },
-    "memoryReservation": 1024,
+    "memoryReservation": ${memoryReservation},
     "portMappings": [
       {
         "containerPort": ${port},

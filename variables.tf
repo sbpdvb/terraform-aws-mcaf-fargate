@@ -152,6 +152,12 @@ variable "memory" {
   description = "Fargate instance memory to provision (in MiB)"
 }
 
+variable "memoryReservation" {
+  type        = number
+  default     = 1024
+  description = "Fargate instance memory reservation to provision (in MiB)"
+}
+
 variable "name" {
   type        = string
   description = "Name of the Fargate jobs"

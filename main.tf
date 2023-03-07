@@ -196,6 +196,7 @@ resource "aws_ecs_task_definition" "default" {
     port                   = var.port
     cpu                    = var.cpu
     memory                 = var.memory
+    memoryReservation      = var.memoryReservation
     log_group              = aws_cloudwatch_log_group.default.name
     environment            = jsonencode(local.environment)
     secrets                = jsonencode(local.secrets)

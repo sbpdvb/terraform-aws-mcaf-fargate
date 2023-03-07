@@ -45,7 +45,7 @@
             "retry_limit": "2"            
         }
     },
-    "memoryReservation": 1024,
+    "memoryReservation": ${memoryReservation},
     "portMappings": [
       {
         "containerPort": ${port},

@@ -10,7 +10,7 @@
     "environment": ${environment},
     "readonlyRootFilesystem": ${readonlyRootFilesystem},
     "secrets": ${secrets},
-    "memoryReservation": 1024,
+    "memoryReservation": ${memoryReservation},
     "portMappings": [
       {
         "containerPort": ${port},

@@ -28,6 +28,12 @@ variable "create_lb" {
   description = "Create Ingress load-balancer"
 }
 
+variable "create_cert" {
+  type        = bool
+  default     = false
+  description = "Create ACM Certificate if not supplied"
+}
+
 
 variable "desired_count" {
   type        = number

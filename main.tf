@@ -207,6 +207,7 @@ resource "aws_ecs_task_definition" "default" {
     image_loader           = var.image_loader
     dd_api_key             = var.dd_api_key
     image_datadog          = var.image_datadog
+    image_opentel          = var.image_opentel
   })
 
   volume {

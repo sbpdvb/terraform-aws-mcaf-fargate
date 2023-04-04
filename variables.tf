@@ -420,6 +420,12 @@ variable "image_datadog" {
   description = "Datadog image"
 }
 
+variable "image_opentel" {
+  type        = string
+  default     = null
+  description = "Opentel image"
+}
+
 variable "dd_api_key" {
   type        = string
   default     = null

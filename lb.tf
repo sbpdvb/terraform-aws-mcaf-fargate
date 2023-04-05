@@ -94,7 +94,7 @@ resource "aws_lb" "default" {
   }
 
   access_logs {
-    bucket  = var.load_balancer_log_s3
+    bucket  = module.task.load_balancer_log_s3
     enabled = true
     prefix  = local.lb_shortname
   }

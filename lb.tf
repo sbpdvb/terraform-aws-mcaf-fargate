@@ -92,14 +92,20 @@ resource "aws_lb" "default" {
     }
   }
 
-  dynamic "access_logs" {
-    for_each = local.lb_log_s3_bucket != null ? [1] : []
-      content {
-        bucket  = local.lb_log_s3_bucket
-        enabled = local.lb_log_s3_bucket != null ? true : false
-        prefix  = local.lb_shortname
-    }
+  access_logs {
+    bucket  = local.lb_log_s3_bucket
+    enabled = true
+    prefix  = local.lb_shortname
   }
+
+  # dynamic "access_logs" {
+  #   for_each = local.lb_log_s3_bucket != null ? [1] : []
+  #     content {
+  #       bucket  = local.lb_log_s3_bucket
+  #       enabled = local.lb_log_s3_bucket != null ? true : false
+  #       prefix  = local.lb_shortname
+  #   }
+  # }
 
   timeouts {
     create = "20m"

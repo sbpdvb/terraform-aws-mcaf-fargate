@@ -7,8 +7,6 @@ resource "random_id" "lb_name" {
   byte_length = 4
 }
 
-load_balancer_log_s3 = var.load_balancer_log_s3
-  
 locals {
   lb_hostname         = var.create_lb && local.load_balancer != null ? aws_lb.default[0].dns_name : null
   http_listener_arn   = var.create_lb && local.load_balancer != null && var.protocol != "TCP" ? aws_lb_listener.http[0].arn : null
@@ -96,7 +94,7 @@ resource "aws_lb" "default" {
   }
 
   access_logs {
-    bucket  = load_balancer_log_s3
+    bucket  = var.load_balancer_log_s3
     enabled = true
     prefix  = local.lb_shortname
   }

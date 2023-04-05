@@ -14,6 +14,7 @@ locals {
   tcp_listener_arn    = var.create_lb && local.load_balancer != null && var.protocol == "TCP" ? aws_lb_listener.tcp[0].arn : null
   load_balancer_count = var.create_lb && local.load_balancer != null ? 1 : 0
   eip_subnets         = var.create_lb && var.load_balancer_eip ? var.load_balancer_subnet_ids : []
+  lb_log_s3_bucket    = var.load_balancer_log_s3 != null ? var.load_balancer_log_s3 : null
 
   lb_shortname = length(var.name) > 32 ? "${substr(var.name, 0, 27)}-${substr(random_id.lb_name.hex, 0, 4)}" : var.name
 
@@ -88,6 +89,15 @@ resource "aws_lb" "default" {
     content {
       subnet_id     = subnet_mapping.value.subnet_id
       allocation_id = subnet_mapping.value.allocation_id
+    }
+  }
+
+  dynamic "access_logs" {
+    for_each = local.lb_log_s3_bucket != null ? [1] : []
+      content {
+        bucket  = local.lb_log_s3_bucket
+        enabled = local.lb_log_s3_bucket != null ? true : false
+        prefix  = local.lb_shortname
     }
   }
 

@@ -129,6 +129,12 @@ variable "load_balancer_subnet_ids" {
   description = "List of subnet IDs assigned to the LB"
 }
 
+variable "load_balancer_log_s3" {
+  type        = string
+  default     = null
+  description = "S3 bucket to use for load balancer logging"
+}
+
 variable "log_bucket" {
   type        = string
   default     = null

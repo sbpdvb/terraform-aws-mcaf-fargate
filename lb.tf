@@ -14,7 +14,8 @@ locals {
   tcp_listener_arn    = var.create_lb && local.load_balancer != null && var.protocol == "TCP" ? aws_lb_listener.tcp[0].arn : null
   load_balancer_count = var.create_lb && local.load_balancer != null ? 1 : 0
   eip_subnets         = var.create_lb && var.load_balancer_eip ? var.load_balancer_subnet_ids : []
-  lb_log_s3_bucket    = var.create_lb && var.load_balancer_log_s3 != null ? var.load_balancer_log_s3 : null
+  #lb_log_s3_bucket    = var.create_lb && var.load_balancer_log_s3 != null ? var.load_balancer_log_s3 : null
+  lb_log_s3_bucket = var.load_balancer_log_s3
 
   lb_shortname = length(var.name) > 32 ? "${substr(var.name, 0, 27)}-${substr(random_id.lb_name.hex, 0, 4)}" : var.name
 
